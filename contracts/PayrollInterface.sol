@@ -293,10 +293,13 @@ contract PayrollInterface {
 
     /**
      * @dev Add funds to the payroll fund
-     */
+
+    TODO: Main payment mechanism is USD, so why does this need funds?  Token 
+    purchases that don't appear possible?
+
     function addFunds() payable contractValid onlyOwner {
         payrollBalance += msg.value;
-    }
+    }*/
 
     /** 
      * @dev Drop all funds and lock everything down. No selfdestruct here in case 
@@ -371,11 +374,24 @@ contract PayrollInterface {
     }
 
     /**
+     * @dev Function to to get amount of tokens allowed for distribution for an
+     * employee
+     * @param employeeAddress - The address for the employee to check
+     * @return count of tokens
+     */
+    function getEmployeeTokenCount(address employeeAddress) constant employeeIsActive(employeeAddress) returns (uint) {
+
+        return employees[employeeAddress].tokens.length;
+
+    }
+
+    /**
      * @dev Function to to get specific entries in the employee token array. This 
      * is should be suitable for iteration since we can't return arrays with 
      * the EVM.
      * @param employeeAddress - The address for the employee to check
      * @param i - The array location
+     * @return The token contract address
      */
     function getEmployeeToken(address employeeAddress, uint i) constant employeeIsActive(employeeAddress) returns (address) {
 
