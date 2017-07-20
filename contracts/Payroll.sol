@@ -5,7 +5,7 @@ import "./USDToken.sol";
 
 // For the sake of simplicity lets asume USD is a ERC20 token
 // Also lets asume we can 100% trust the exchange rate oracle
-contract PayrollInterface {
+contract Payroll {
 
     struct Employee {
         bool active;
@@ -75,6 +75,16 @@ contract PayrollInterface {
      */
     event Paid(address);
 
+    /**
+     * @dev Event used for debugging purposes
+     */
+    event Debug(string);
+
+    /**
+     * @dev Event used for debugging purposes
+     */
+    event DebugUint(uint);
+
     ///
     /// Modifiers
     ///
@@ -83,10 +93,7 @@ contract PayrollInterface {
      * @dev Only the owner can execute
      */
     modifier onlyOwner() {
-        if (owners[msg.sender] != true) {
-            Error(msg.sender, "Denied");
-            throw; 
-        }
+        require(owners[msg.sender] == true); 
         _; 
     }
 
@@ -95,10 +102,7 @@ contract PayrollInterface {
      */
     modifier onlyEmployee() {
         // Make sure the caller is an active employee
-        if (employees[msg.sender].active != true) {
-            Error(msg.sender, "Not an employee");
-            throw;
-        }
+        require(employees[msg.sender].active == true);
         _;
     }
 
@@ -107,10 +111,7 @@ contract PayrollInterface {
      */
     modifier onlyOracle() {
         // Make sure the caller is the set oracle
-        if (msg.sender != exchangeOracle) {
-            Error(msg.sender, "Not the oracle");
-            throw;
-        }
+        require(msg.sender == exchangeOracle);
         _;
     }
 
@@ -120,10 +121,7 @@ contract PayrollInterface {
      *      being validated
      */
     modifier employeeIsActive(address employeeAddress) {
-        if (employees[employeeAddress].active != true) {
-            Error(msg.sender, "Employee not found");
-            throw; 
-        }
+        require(employees[employeeAddress].active == true);
         _; 
     }
 
@@ -132,10 +130,7 @@ contract PayrollInterface {
      * @param salary - The salary arg for the function call being validated
      */
     modifier validSalary(uint salary) {
-        if (salary < 1) {
-            Error(msg.sender, "Salary invalid");
-            throw; 
-        }
+        require(salary > 0);
         _; 
     }
 
@@ -143,9 +138,7 @@ contract PayrollInterface {
      * @dev Make sure this contract is still valid
      */
     modifier contractValid() {
-        if (valid != true) {
-            throw; 
-        }
+        assert(valid == true);
         _; 
     }
 
@@ -156,7 +149,7 @@ contract PayrollInterface {
      * @param oracle - The exchange oracle that will provide the contract with 
      *      token to USD exchange rates
      */
-    function PayrollInterface(address firstOwner, address oracle, address usdTokenAddr) {
+    function Payroll(address firstOwner, address oracle, address usdTokenAddr) {
         
         // Set first owner
         owners[firstOwner] = true;
@@ -270,15 +263,9 @@ contract PayrollInterface {
 
         // Make sure the employee exists. This is the best way to check for a 
         // valid Employee struct without using active
-        if (employees[employeeAddress].start == 0) {
-            Error(msg.sender, "Employee not found");
-            throw;
-        }
+        require(employees[employeeAddress].start > 0);
         // Make sure the employee isn't already an active employee
-        if (employees[employeeAddress].active == true) {
-            Error(msg.sender, "Employee already active");
-            throw;
-        }
+        require(employees[employeeAddress].active != true);
 
         // Reactivate the employee
         employees[employeeAddress].active = true;
@@ -392,16 +379,15 @@ contract PayrollInterface {
      * @param employeeAddress - The address for the employee to check
      * @param i - The array location
      * @return The token contract address
+     * @return The distribution percentage
      */
-    function getEmployeeToken(address employeeAddress, uint i) constant employeeIsActive(employeeAddress) returns (address) {
+    function getEmployeeToken(address employeeAddress, uint i) constant employeeIsActive(employeeAddress) returns (address, int) {
 
         // Throw early, in case we can't predict the EVM with OOB array calls
-        if (i > employees[employeeAddress].tokens.length - 1) {
-            throw;
-        }
+        require(i < employees[employeeAddress].tokens.length);
 
         // Return it
-        return employees[employeeAddress].tokens[i];
+        return (employees[employeeAddress].tokens[i], employees[employeeAddress].tokenDistribution[i]);
 
     }
 
@@ -410,6 +396,7 @@ contract PayrollInterface {
      * @return burnrate - The value in USD being spent on payroll per month
      */
     function calculatePayrollBurnrate() constant returns (uint) {
+        Debug("wat");
         return annualPayroll / 12;
     }
 
@@ -422,8 +409,39 @@ contract PayrollInterface {
         // Figure out daily payroll
         uint daily = annualPayroll / 365;
 
+        // Get USD token instance
+        USDToken usdToken = USDToken(usdTokenAddress);
+
+        // Get our balance
+        uint usdBalance = usdToken.balanceOf(this);
+        Debug("usdBalance");
+        DebugUint(usdBalance);
         // Calculate the days until empty
-        return payrollBalance / daily;
+        return usdBalance / daily;
+
+    }
+
+    /**
+     * @dev Get the exchange rate for a token
+     * @param token - The address for the token contract
+     * @return The exchange rate*100 between token and USD
+     */
+    function getExchangeRate(address token) constant returns (uint) {
+
+        return exchangeRates[token];
+
+    }
+
+    /**
+     * @dev Set the exchange rate for a token
+     * @param token - The address for the token contract
+     * @param usdExchangeRate - The exchange rate*100 between token and USD. For
+     *      instance, if 1 token was 1USD, usdExchangeRate would be 100
+     */
+    function setExchangeRate(address token, uint usdExchangeRate) onlyOracle {
+
+        // Set the rate
+        exchangeRates[token] = usdExchangeRate;
 
     }
 
@@ -434,25 +452,16 @@ contract PayrollInterface {
      *      should be provisioned for each token
      */
     function determineAllocation(address[] tokens, int[] distribution) external onlyEmployee {
-
+        
         // Make sure they haven't reallocated in the last half of a year
-        if (employeeRealloc[msg.sender] < 16425000) {
-            Error(msg.sender, "Realloc too soon");
-            throw;
-        }
+        require(now - 16425000 > employeeRealloc[msg.sender]);
 
         // verify we have the same amount of tokens and percentages
-        if (tokens.length != distribution.length) {
-            Error(msg.sender, "Missing distribution information");
-            throw;
-        }
+        require(tokens.length == distribution.length);
 
         // Verify the distribution count isn't greater than 100%
         int distSum = sumArrayInt(distribution);
-        if (distSum > 100) {
-            Error(msg.sender, "Invalid distribution");
-            throw;
-        }
+        require(distSum <= 100);
 
         // Set tokens
         employees[msg.sender].tokens = tokens;
@@ -479,10 +488,7 @@ contract PayrollInterface {
     function payday() external onlyEmployee {
 
         // Make sure it's been one "month" since last payday
-        if (now - lastPayday[msg.sender] < 2737500) {
-            Error(msg.sender, 'Not yet payday');
-            throw;
-        }
+        require(now - lastPayday[msg.sender] >= 2737500);
 
         // Initial distrubtion percentage to USD
         int usdDistPercent = 100;
@@ -500,10 +506,7 @@ contract PayrollInterface {
             int distSum = sumArrayInt(employees[msg.sender].tokenDistribution);
 
             // Double check it's not nonsense
-            if (distSum < 1) {
-                Error(msg.sender, "Payday distribution invalid");
-                throw;
-            }
+            if (distSum < 1) revert();
 
             // Subtract this percentage from the USD payout
             usdDistPercent -= distSum;
@@ -515,10 +518,7 @@ contract PayrollInterface {
                 int remainder = 0;
 
                 // Make sure we have an exchange rate for this token
-                if (exchangeRates[employees[msg.sender].tokens[i]] < 1) {
-                    Error(msg.sender, "Missing exchange rate");
-                    throw;
-                }
+                assert(exchangeRates[employees[msg.sender].tokens[i]] > 0);
 
                 // Figure out the percentage of USD to use for this token.
                 int tokenPayUSD = usdPayment / employees[msg.sender].tokenDistribution[i];
@@ -545,10 +545,7 @@ contract PayrollInterface {
                 uint tokenBalance = tok.balanceOf(this);
 
                 // If we don't have enough tokens, bail
-                if (int(tokenBalance) < tokens) {
-                    ErrorToken(employees[msg.sender].tokens[i], "Low balance");
-                    throw;
-                } 
+                assert(int(tokenBalance) >= tokens);
 
                 // make token payment
                 tok.transferFrom(this, msg.sender, uint(tokens));
@@ -558,10 +555,7 @@ contract PayrollInterface {
         }
 
         // Double check math
-        if (usdPayment != (monthlyPayment * 100 * usdDistPercent) / 100) {
-            Error(msg.sender, "Invalid contract math");
-            throw;
-        }
+        assert(usdPayment == (monthlyPayment * 100 * usdDistPercent) / 100);
 
         // Get USD Token contract instance
         USDToken usdToken = USDToken(usdTokenAddress);
@@ -570,10 +564,7 @@ contract PayrollInterface {
         uint usdTokenBalance = usdToken.balanceOf(this);
 
         // Make sure we have the funds
-        if (int(usdTokenBalance) < usdPayment) {
-            Error(msg.sender, "Insufficient funds");
-            throw;
-        }
+        assert(int(usdTokenBalance) >= usdPayment);
 
         // Make USD payment
         usdToken.transferFrom(this, msg.sender, uint(usdPayment));
@@ -581,17 +572,5 @@ contract PayrollInterface {
         // Notify
         Paid(msg.sender);
         
-    }
-
-    /**
-     * @dev Set the exchange rate for a token
-     * @param token - The address for the token contract
-     * @param usdExchangeRate - The exchange rate*100 between token and USD
-     */
-    function setExchangeRate(address token, uint usdExchangeRate) onlyOracle {
-
-        // Set the rate
-        exchangeRates[token] = usdExchangeRate;
-
     }
 }
