@@ -12,7 +12,7 @@ contract("Payroll", function(accounts) {
     var marySalary = 15000000;
     var frankSalary = 10000000;
 
-    it("listens for events", function() {
+    /*it("listens for events", function() {
 
         return Payroll.deployed().then(function(payroll) {
 
@@ -25,14 +25,16 @@ contract("Payroll", function(accounts) {
 
         });
 
-    });
+    });*/
 
     it("adds an employee", function() {
 
         return Payroll.deployed().then(function(payroll) {
 
-            return payroll.addEmployee(mary, [HumanStandardToken.address], marySalary, {from: owner});
+            return payroll.addEmployee(mary, [HumanStandardToken.address], marySalary, {from: owner, gas: 200000});
 
+        }).then(function(retval) {
+            assert.isTrue(true);
         });
 
     });
@@ -41,7 +43,10 @@ contract("Payroll", function(accounts) {
 
         return Payroll.deployed().then(function(payroll) {
 
-            return payroll.getEmployee(mary);
+            var waitTill = new Date(new Date().getTime() + 5 * 1000);
+            while(waitTill > new Date()){}
+
+            return payroll.getEmployee(mary, {from: mary});
 
         }).then(function(retval) {
 
@@ -230,7 +235,6 @@ contract("Payroll", function(accounts) {
         }).then(function(retval) {
             
             var burnRate = Math.round((marySalary + frankSalary) / 12);
-            console.log(burnRate);
             assert.equal(burnRate, parseInt(retval), "burn rate appears invalid");
 
         });
@@ -247,7 +251,6 @@ contract("Payroll", function(accounts) {
             return payroll.calculatePayrollRunway();
 
         }).then(function(retval) {
-            console.error(retval);
             // TODO: This is 0 because contract balance is zero.  Contract 
             // should check the USD balance, probably
             assert.equal(0, parseInt(retval), "runway appears invalid");
@@ -309,7 +312,7 @@ contract("Payroll", function(accounts) {
 
     });
 
-    /*it("should pay mary", function() {
+    it("should pay mary", function() {
         var payroll;
         var maryStartUSD;
         var maryStartHT;
@@ -335,13 +338,14 @@ contract("Payroll", function(accounts) {
             maryStartHT = retval[0];
             maryStartUSD = retval[1];
 
-            console.log(maryEndHT);
-            console.log(maryEndUSD);
+            console.log(maryStartHT);
+            console.log(maryStartUSD);
             console.log("dbg1");
-            return payroll.payday({from: mary, gas: 3000000});
+            return payroll.payday({from: mary, gas: 4000000});
 
         }).then(function(trans){
             console.log("dbg2");
+            console.log(trans);
             let hstPromise = HumanStandardToken.deployed().then(function(hst) {
                 return hst.balanceOf(mary);
             });
@@ -354,17 +358,17 @@ contract("Payroll", function(accounts) {
 
         }).then(function(retval) {
 
-            maryEndHT = retval[0];
-            maryEndUSD = retval[1];
+            maryEndHT = parseInt(retval[0]);
+            maryEndUSD = parseInt(retval[1]);
 
             console.log(maryEndHT);
             console.log(maryEndUSD);
             
-            assert.isAbove(maryEndUSD, maryStartUSD, "Mary appears to not have been paid");
-            assert.isAbove(maryEndHT, maryStartHT, "Mary appears to not have been paid");
+            assert.isAbove(maryEndUSD, maryStartUSD, "Mary appears to not have been paid in USD");
+            assert.isAbove(maryEndHT, maryStartHT, "Mary appears to not have been paid in HT");
 
         });
 
-    });*/
+    });
 
 });

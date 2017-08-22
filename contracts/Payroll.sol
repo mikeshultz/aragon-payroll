@@ -63,27 +63,27 @@ contract Payroll {
     /** 
      * @dev Signal an error 
      */
-    event Error(address, string);
+    event Error(address sender, string msg);
 
     /**
      * @dev Signal an error with token operations
      */
-    event ErrorToken(address, string);
+    event ErrorToken(address sender, string msg);
 
     /**
      * @dev Employee was paid
      */
-    event Paid(address);
+    event Paid(address sender);
 
     /**
      * @dev Event used for debugging purposes
      */
-    event Debug(string);
+    event Debug(string msg);
 
     /**
      * @dev Event used for debugging purposes
      */
-    event DebugUint(uint);
+    event DebugUint(uint msg);
 
     ///
     /// Modifiers
@@ -487,8 +487,10 @@ contract Payroll {
      */
     function payday() external onlyEmployee {
 
-        // Make sure it's been one "month" since last payday
-        require(now - lastPayday[msg.sender] >= 2737500);
+        if (lastPayday[msg.sender] > 0) {
+            // Make sure it's been one "month" since last payday
+            require(now - lastPayday[msg.sender] >= 2737500);
+        }
 
         // Initial distrubtion percentage to USD
         int usdDistPercent = 100;
@@ -545,17 +547,17 @@ contract Payroll {
                 uint tokenBalance = tok.balanceOf(this);
 
                 // If we don't have enough tokens, bail
-                assert(int(tokenBalance) >= tokens);
+                //assert(int(tokenBalance) >= tokens);
 
                 // make token payment
-                tok.transferFrom(this, msg.sender, uint(tokens));
+                //tok.transferFrom(this, msg.sender, uint(tokens));
 
             }
 
         }
 
         // Double check math
-        assert(usdPayment == (monthlyPayment * 100 * usdDistPercent) / 100);
+        //assert(usdPayment == (monthlyPayment * 100 * usdDistPercent) / 100);
 
         // Get USD Token contract instance
         USDToken usdToken = USDToken(usdTokenAddress);
@@ -563,11 +565,13 @@ contract Payroll {
         // Get our current USD balance
         uint usdTokenBalance = usdToken.balanceOf(this);
 
+        DebugUint(usdTokenBalance);
+
         // Make sure we have the funds
-        assert(int(usdTokenBalance) >= usdPayment);
+        //assert(int(usdTokenBalance) >= usdPayment);
 
         // Make USD payment
-        usdToken.transferFrom(this, msg.sender, uint(usdPayment));
+        //usdToken.transferFrom(this, msg.sender, uint(usdPayment));
 
         // Notify
         Paid(msg.sender);

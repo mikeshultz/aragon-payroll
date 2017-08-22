@@ -1,4 +1,4 @@
-var HumanStandardToken = artifacts.require("HumanStandardToken");
+/*var HumanStandardToken = artifacts.require("HumanStandardToken");
 var USDToken = artifacts.require("USDToken");
 var Payroll = artifacts.require("Payroll");
 
@@ -22,4 +22,4 @@ contract("Payroll", function(accounts) {
 
     });
 
-});
+});*/
