@@ -29,14 +29,8 @@ contract("HumanStandardToken", function(accounts) {
                 hst = hstInst;
                 return hst.transfer(Payroll.address, 10000000000000000000);
             }).then(function(trans) {
-                console.log(trans);
-                console.log(Payroll.address);
-                console.log(payrollInst.address);
                 return hst.balanceOf.call(Payroll.address);
             }).then(function(result) {
-                hst.balanceOf.call(accounts[0]).then(function(res) {
-                    console.log("balance of owner: " + res);
-                })
                 assert.equal(parseInt(result), 10000000000000000000);
             });
         });
@@ -47,8 +41,6 @@ contract("HumanStandardToken", function(accounts) {
 
 contract("USDToken", function(accounts) {
 
-    //web3.personal.unlockAccount(accounts[0], "foo");
-
     it("creation: should create an initial USD balance of 100000000 for the creator", function() {
         return USDToken.deployed().then(function(usdTract) {
             return usdTract.balanceOf.call(accounts[0]);
@@ -58,10 +50,21 @@ contract("USDToken", function(accounts) {
     });
 
     it("transfer USD tokens to payroll contract", function() {
+        
+        var usd;
 
         return Payroll.deployed().then(function(payrollInst) {
             return USDToken.deployed().then(function (usdInst) {
-                usdInst.transfer(Payroll.address, 100000000);
+                usd = usdInst;
+                return usd.transfer(Payroll.address, 100000000);
+            }).then(function(trans) {
+                /*console.log(trans);
+                usd.balanceOf.call(accounts[0]).then(function (res) {
+                    console.log("Owner balance: " + res);
+                });*/
+                return usd.balanceOf.call(Payroll.address);
+            }).then(function(result) {
+                assert.equal(parseInt(result), 100000000);
             });
         });
 

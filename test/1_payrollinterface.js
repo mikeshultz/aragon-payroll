@@ -251,9 +251,8 @@ contract("Payroll", function(accounts) {
             return payroll.calculatePayrollRunway();
 
         }).then(function(retval) {
-            // TODO: This is 0 because contract balance is zero.  Contract 
-            // should check the USD balance, probably
-            assert.equal(0, parseInt(retval), "runway appears invalid");
+            
+            assert.equal(1303, parseInt(retval), "runway appears invalid");
 
         });
 
