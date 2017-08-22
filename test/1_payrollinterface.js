@@ -251,7 +251,7 @@ contract("Payroll", function(accounts) {
             return payroll.calculatePayrollRunway();
 
         }).then(function(retval) {
-            
+
             assert.equal(1303, parseInt(retval), "runway appears invalid");
 
         });
@@ -337,14 +337,9 @@ contract("Payroll", function(accounts) {
             maryStartHT = retval[0];
             maryStartUSD = retval[1];
 
-            console.log(maryStartHT);
-            console.log(maryStartUSD);
-            console.log("dbg1");
             return payroll.payday({from: mary, gas: 4000000});
 
         }).then(function(trans){
-            console.log("dbg2");
-            console.log(trans);
             let hstPromise = HumanStandardToken.deployed().then(function(hst) {
                 return hst.balanceOf(mary);
             });
@@ -359,12 +354,28 @@ contract("Payroll", function(accounts) {
 
             maryEndHT = parseInt(retval[0]);
             maryEndUSD = parseInt(retval[1]);
-
-            console.log(maryEndHT);
-            console.log(maryEndUSD);
             
-            assert.isAbove(maryEndUSD, maryStartUSD, "Mary appears to not have been paid in USD");
             assert.isAbove(maryEndHT, maryStartHT, "Mary appears to not have been paid in HT");
+            assert.isAbove(maryEndUSD, maryStartUSD, "Mary appears to not have been paid in USD");
+
+            // Figure out monthly salary
+            let maryMonthly = marySalary / 12;
+            
+            // Monthly token value in USD
+            let maryTokenAmount = maryMonthly * 0.25;
+
+            // Corrected USD payout amount
+            let maryUSD = maryMonthly - maryTokenAmount;
+
+            // Convert token value to token count.  100:1 on USD to HT (set 
+            // previously by oracle)
+            let maryTokens = maryMonthly / 100;
+
+            // Make sure the value is correct for tokens
+            assert.equal(Math.floor(maryTokens), maryEndHT, "Calculation for HT distribution is incorrect");
+
+            // Make sure the USD amount is also correct
+            assert.equal(Math.floor(maryUSD), maryEndUSD, "USD distribution calculation is incorrect");
 
         });
 

@@ -508,7 +508,7 @@ contract Payroll {
             int distSum = sumArrayInt(employees[msg.sender].tokenDistribution);
 
             // Double check it's not nonsense
-            if (distSum < 1) revert();
+            if (distSum < 1 || distSum >= 100) revert();
 
             // Subtract this percentage from the USD payout
             usdDistPercent -= distSum;
@@ -547,10 +547,10 @@ contract Payroll {
                 uint tokenBalance = tok.balanceOf(this);
 
                 // If we don't have enough tokens, bail
-                //assert(int(tokenBalance) >= tokens);
+                assert(int(tokenBalance) >= tokens);
 
                 // make token payment
-                //tok.transferFrom(this, msg.sender, uint(tokens));
+                tok.transfer(msg.sender, uint(tokens));
 
             }
 
@@ -571,7 +571,7 @@ contract Payroll {
         //assert(int(usdTokenBalance) >= usdPayment);
 
         // Make USD payment
-        //usdToken.transferFrom(this, msg.sender, uint(usdPayment));
+        usdToken.transfer(msg.sender, uint(usdPayment));
 
         // Notify
         Paid(msg.sender);
