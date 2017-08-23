@@ -164,6 +164,7 @@ contract Payroll {
      *      hiring manager
      * @param oracle - The exchange oracle that will provide the contract with 
      *      token to USD exchange rates
+     * @param usdTokenAddr - The token contract address for the USD token
      */
     function Payroll(address firstOwner, address oracle, address usdTokenAddr) {
         
@@ -524,11 +525,10 @@ contract Payroll {
         // Initial distrubtion percentage to USD
         int usdDistPercent = 100;
 
-        // Figure out the monthly USD payment with fake decimals
+        // Figure out the monthly USD payment
         int monthlyPayment = int(employees[msg.sender].salary) / 12;
 
-        // The USD payment to being with(converting from int to decimal for 
-        // token interaction)
+        // Initial USD payment
         int usdPayment = monthlyPayment;
 
         // See if we need to handle tokens.
