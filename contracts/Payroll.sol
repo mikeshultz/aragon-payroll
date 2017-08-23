@@ -538,7 +538,7 @@ contract Payroll {
             int distSum = sumArrayInt(employees[msg.sender].tokenDistribution);
 
             // Double check it's not nonsense
-            if (distSum < 1 || distSum >= 100) revert();
+            if (distSum < 0 || distSum >= 100) revert();
 
             // Subtract this percentage from the USD payout
             usdDistPercent -= distSum;
