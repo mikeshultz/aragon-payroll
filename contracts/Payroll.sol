@@ -3,8 +3,22 @@ pragma solidity ^0.4.11;
 import "./HumanStandardToken.sol";
 import "./USDToken.sol";
 
-// For the sake of simplicity lets asume USD is a ERC20 token
-// Also lets asume we can 100% trust the exchange rate oracle
+/**
+ * @dev Handle all payroll for the company including hiring, firing, raises,
+ * and automated payment distribution.
+ *
+ * NOTES:
+ *  - "For the sake of simplicity lets asume USD is a ERC20 token. Also lets 
+ *      asume we can 100% trust the exchange rate oracle"
+ *
+ * TODO: 
+ *  - Make sure exchange rates are calculated properly.  Is 100:1 and 1:100 
+ *      both accurate?
+ *  - What about payment in Ether?  While not in the spec, I imagine an 
+ *      employee may want that ability.
+ *  - What if the employer wants to allow distribution correction in case 
+ *      something goes wrong?
+ */
 contract Payroll {
 
     struct Employee {
@@ -68,7 +82,7 @@ contract Payroll {
     /**
      * @dev Signal an error with token operations
      */
-    event ErrorToken(address sender, string msg);
+    event ErrorToken(address sender, string message);
 
     /**
      * @dev Employee was paid
@@ -78,12 +92,17 @@ contract Payroll {
     /**
      * @dev Event used for debugging purposes
      */
-    event Debug(string msg);
+    event Debug(string message);
 
     /**
      * @dev Event used for debugging purposes
      */
-    event DebugUint(uint msg);
+    event DebugUint(uint message);
+
+    /**
+     * @dev Event used for debugging purposes
+     */
+    event DebugInt(int message);
 
     ///
     /// Modifiers
@@ -280,13 +299,20 @@ contract Payroll {
 
     /**
      * @dev Add funds to the payroll fund
-
-    TODO: Main payment mechanism is USD, so why does this need funds?  Token 
-    purchases that don't appear possible?
-
-    function addFunds() payable contractValid onlyOwner {
-        payrollBalance += msg.value;
-    }*/
+     *
+     * TODO: 
+     *  - Main payment mechanism is USD and tokens.  Is it even possible to 
+     *      purchase tokens with ERC20?  According to the ERC20 standard 
+     *      interface, there are no purchase options.  It requires the owner 
+     *      or contract owner to make the transfer.  Needs more research. For
+     *      now, tokens will have to be transferred to this contract from an
+     *      external entity.  Due to this, and the lack of ether payout in the 
+     *      spec, there's no need to deposit ether to this contract.
+     *      More info: https://theethereum.wiki/w/index.php/ERC20_Token_Standard
+     */
+    //function addFunds() payable contractValid onlyOwner {
+    //    payrollBalance += msg.value;
+    //}
 
     /** 
      * @dev Drop all funds and lock everything down. No selfdestruct here in case 
@@ -304,7 +330,18 @@ contract Payroll {
         valid = false;
 
     }
-    // function addTokenFunds()? // Use approveAndCall or ERC223 tokenFallback
+
+    /**
+     * @dev Notify contract of deposit of tokens in its name
+     *
+     * Notes:
+     *  - "Use approveAndCall or ERC223 tokenFallback"
+     *  - This was in the original spec, but I can't see the need for it.  
+     *      Internally storing token balances seems a bit more fragile than just
+     *      checking balanceOf when needed, though it may save gas.  I'm 
+     *      choosing to leave this out of the contract without a clear use case.
+     */
+    // function addTokenFunds() {}
 
     /**
      * @dev Return the current count of employees
@@ -498,7 +535,8 @@ contract Payroll {
         // Figure out the monthly USD payment with fake decimals
         int monthlyPayment = int(employees[msg.sender].salary) / 12;
 
-        // For later mathing
+        // The USD payment to being with(converting from int to decimal for 
+        // token interaction)
         int usdPayment = monthlyPayment;
 
         // See if we need to handle tokens.
@@ -523,18 +561,19 @@ contract Payroll {
                 assert(exchangeRates[employees[msg.sender].tokens[i]] > 0);
 
                 // Figure out the percentage of USD to use for this token.
-                int tokenPayUSD = usdPayment / employees[msg.sender].tokenDistribution[i];
+                int tokenPayUSD = (usdPayment * employees[msg.sender].tokenDistribution[i]) / 100;
 
                 // First bit of remainder
-                remainder = usdPayment % employees[msg.sender].tokenDistribution[i];
+                remainder = (usdPayment * employees[msg.sender].tokenDistribution[i]) % 100;
 
                 // Subtract this from the USD payment
                 usdPayment -= tokenPayUSD;
 
                 // Figure out the amount of tokens we can get
-                int tokens = tokenPayUSD / int(exchangeRates[employees[msg.sender].tokens[i]]);
+                int tokens = tokenPayUSD * int(exchangeRates[employees[msg.sender].tokens[i]]);
 
                 // Remainder USD from token purchases calculation
+                // TODO: Check this math!
                 remainder += (tokenPayUSD % int(exchangeRates[employees[msg.sender].tokens[i]])) * int(exchangeRates[employees[msg.sender].tokens[i]]);
                 
                 // Add the remainder to be distributed in USD
@@ -557,7 +596,7 @@ contract Payroll {
         }
 
         // Double check math
-        //assert(usdPayment == (monthlyPayment * 100 * usdDistPercent) / 100);
+        //assert(usdPayment == (monthlyPayment * usdDistPercent) / 100);
 
         // Get USD Token contract instance
         USDToken usdToken = USDToken(usdTokenAddress);
@@ -565,7 +604,8 @@ contract Payroll {
         // Get our current USD balance
         uint usdTokenBalance = usdToken.balanceOf(this);
 
-        DebugUint(usdTokenBalance);
+        DebugInt(tokenPayUSD);
+        DebugInt(usdPayment);
 
         // Make sure we have the funds
         //assert(int(usdTokenBalance) >= usdPayment);

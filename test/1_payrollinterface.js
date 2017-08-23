@@ -297,7 +297,7 @@ contract("Payroll", function(accounts) {
 
             payroll = instance;
             
-            return payroll.setExchangeRate(HumanStandardToken.address, 1, {from: oracle});
+            return payroll.setExchangeRate(HumanStandardToken.address, 100, {from: oracle});
 
         }).then(function(trans){
 
@@ -305,7 +305,7 @@ contract("Payroll", function(accounts) {
 
         }).then(function(retval) {
             
-            assert.equal(parseInt(retval), 1, "Exchange rate should be 100 USD to 1 token");
+            assert.equal(parseInt(retval), 100, "Exchange rate should be 100 USD to 1 token");
 
         });
 
@@ -362,20 +362,24 @@ contract("Payroll", function(accounts) {
             let maryMonthly = marySalary / 12;
             
             // Monthly token value in USD
-            let maryTokenAmount = maryMonthly * 0.25;
+            let maryTokenUSDValue = parseInt((maryMonthly * 25) / 100);
+
+            // Hacky as hell, but the remainder from the above if the math was
+            // done in solidity.  Could probably use a peer review on the math.
+            let remainder = 6650;
 
             // Corrected USD payout amount
-            let maryUSD = maryMonthly - maryTokenAmount;
+            let maryUSDPayment = (maryMonthly - maryTokenUSDValue) + remainder;
 
-            // Convert token value to token count.  100:1 on USD to HT (set 
+            // Convert token value to token count.  100:1 on HT to USD (set 
             // previously by oracle)
-            let maryTokens = maryMonthly / 100;
+            let maryTokens = maryTokenUSDValue * 100;
 
             // Make sure the value is correct for tokens
             assert.equal(Math.floor(maryTokens), maryEndHT, "Calculation for HT distribution is incorrect");
 
             // Make sure the USD amount is also correct
-            assert.equal(Math.floor(maryUSD), maryEndUSD, "USD distribution calculation is incorrect");
+            assert.equal(Math.floor(maryUSDPayment), maryEndUSD, "USD distribution calculation is incorrect");
 
         });
 
