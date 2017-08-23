@@ -18,6 +18,8 @@ import "./USDToken.sol";
  *      employee may want that ability.
  *  - What if the employer wants to allow distribution correction in case 
  *      something goes wrong?
+ *  - There should be a way to track all of the tokens that this contract should
+ *      have a balance of.
  */
 contract Payroll {
 
