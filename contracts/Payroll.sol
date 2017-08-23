@@ -44,8 +44,6 @@ contract Payroll {
     // Mapping of employees
     mapping (address => Employee) internal employees;
 
-    // The employees' token allocations
-
     // The last time an employee last reallocated their pay ratio
     mapping (address => uint) internal employeeRealloc;
 
