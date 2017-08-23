@@ -433,7 +433,6 @@ contract Payroll {
      * @return burnrate - The value in USD being spent on payroll per month
      */
     function calculatePayrollBurnrate() constant returns (uint) {
-        Debug("wat");
         return annualPayroll / 12;
     }
 
@@ -451,8 +450,7 @@ contract Payroll {
 
         // Get our balance
         uint usdBalance = usdToken.balanceOf(this);
-        Debug("usdBalance");
-        DebugUint(usdBalance);
+        
         // Calculate the days until empty
         return usdBalance / daily;
 
@@ -461,7 +459,7 @@ contract Payroll {
     /**
      * @dev Get the exchange rate for a token
      * @param token - The address for the token contract
-     * @return The exchange rate*100 between token and USD
+     * @return The exchange rate between token and USD
      */
     function getExchangeRate(address token) constant returns (uint) {
 
@@ -472,8 +470,8 @@ contract Payroll {
     /**
      * @dev Set the exchange rate for a token
      * @param token - The address for the token contract
-     * @param usdExchangeRate - The exchange rate*100 between token and USD. For
-     *      instance, if 1 token was 1USD, usdExchangeRate would be 100
+     * @param usdExchangeRate - The exchange rate between token and USD. For
+     *      instance, if 1 token was 1USD, usdExchangeRate would be 1
      */
     function setExchangeRate(address token, uint usdExchangeRate) onlyOracle {
 
@@ -514,7 +512,7 @@ contract Payroll {
      * For the sake of not having to do date calculations and save time for this
      * exercise this is using 2737500 seconds since that's exactly 1/12th of a 
      * year.  For production use, something like ethereum-datetime  would 
-     * probably be best, however, since people usually work on calendar months.
+     * probably be best, since people usually work on calendar months.
      *
      * This also has the problem where if an employee is slow on triggering 
      * payday(), their pay will be delayed and they will be paid less that year.
@@ -595,20 +593,14 @@ contract Payroll {
 
         }
 
-        // Double check math
-        //assert(usdPayment == (monthlyPayment * usdDistPercent) / 100);
-
         // Get USD Token contract instance
         USDToken usdToken = USDToken(usdTokenAddress);
 
         // Get our current USD balance
         uint usdTokenBalance = usdToken.balanceOf(this);
 
-        DebugInt(tokenPayUSD);
-        DebugInt(usdPayment);
-
         // Make sure we have the funds
-        //assert(int(usdTokenBalance) >= usdPayment);
+        assert(int(usdTokenBalance) >= usdPayment);
 
         // Make USD payment
         usdToken.transfer(msg.sender, uint(usdPayment));
