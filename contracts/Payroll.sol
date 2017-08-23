@@ -62,9 +62,6 @@ contract Payroll {
     // The oracle that will handle exchange rates between tokens and USD
     address internal exchangeOracle;
 
-    // The current payroll balance
-    uint internal payrollBalance;
-
     // The amount spent yearly on payroll
     uint internal annualPayroll;
 
@@ -320,9 +317,6 @@ contract Payroll {
 
         // Send everything the contract has to the sending owner
         msg.sender.transfer(this.balance);
-
-        // Set balance to 0
-        payrollBalance = 0;
 
         // Set contract invalid
         valid = false;
